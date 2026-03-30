@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { cleanupExpiredRooms } from "./lib/roomHelper";
 
 const app: Express = express();
 
@@ -30,5 +31,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+setInterval(() => {
+  cleanupExpiredRooms().catch(err => {
+    logger.error({ err }, "Error in cleanup worker");
+  });
+}, 60 * 1000);
 
 export default app;

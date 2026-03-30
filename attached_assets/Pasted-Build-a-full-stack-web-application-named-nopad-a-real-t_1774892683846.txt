@@ -1,0 +1,278 @@
+Build a full-stack web application named "nopad" — a real-time, room-based collaboration platform with temporary file sharing and structured text blocks.
+
+The system must be:
+- NO login
+- Fully ephemeral (NO permanent storage)
+- Auto-delete everything after 20 minutes
+- Fast, minimal, secure
+
+-----------------------------------
+1. CORE SYSTEM
+-----------------------------------
+
+- URL-based rooms: /{roomName}
+- Room name rules:
+  - a-z, A-Z, 0-9 only
+  - length: 1–20
+- Max 250 concurrent users per room
+
+EXPIRY (CRITICAL):
+- Each room expires exactly 20 minutes after creation
+- NO reset on activity
+
+AFTER EXPIRY:
+- Delete ALL:
+  - files
+  - text blocks
+  - metadata
+- SAME room name must be reusable immediately
+
+-----------------------------------
+2. STRICT EPHEMERAL STORAGE RULE
+-----------------------------------
+
+- NO permanent database storage
+- All data must be temporary
+
+IMPLEMENTATION:
+- Use PostgreSQL with TTL logic OR Redis with expiry
+- Each room has expires_at timestamp
+- Files stored in temp directory:
+  → /tmp/nopad/{roomId}/
+
+AUTO CLEANUP (MANDATORY):
+- Background worker runs every 60 seconds:
+  - delete expired rooms from DB
+  - delete all files from disk
+  - remove all related records
+
+NO BACKUPS
+NO LOGGING OF FILE CONTENT
+NO PERSISTENCE
+
+-----------------------------------
+3. UI/UX DESIGN (STRICT)
+-----------------------------------
+
+ENTRY PAGE:
+- Centered input: "nopad/"
+- Button: "Go"
+- Subtitle: "No login required"
+- Footer:
+  → "This is for educational purpose"
+- Minimal clean UI
+
+-----------------------------------
+
+ROOM PAGE:
+
+A. FILE SECTION (TOP)
+- Vertical card list
+- Each file card:
+  - icon
+  - name
+  - size
+- Actions:
+  - Copy link
+  - Download (MUST WORK properly)
+  - Delete
+
+-----------------------------------
+
+B. TEXT BLOCK SYSTEM
+
+- "New Block" button required
+- Each block:
+  - editable text area
+  - auto-save while typing (real-time)
+  - timestamp (12-hour format)
+
+Buttons:
+- 📋 Copy (ChatGPT-style)
+- 🧷 Commit
+- 🗑 Delete
+
+-----------------------------------
+
+COMMIT LOGIC:
+- Default: anyone can edit/delete
+- After commit:
+  - only owner can edit/delete
+- Owner tracked via browser ID (localStorage)
+
+If owner lost:
+- block becomes editable
+
+-----------------------------------
+
+C. UPLOAD AREA (FIXED)
+- MUST be at bottom of page
+- Drag & drop + file picker
+
+-----------------------------------
+
+D. THEMES
+- White
+- Black
+- Hacker (green text)
+
+-----------------------------------
+4. FILE SYSTEM (SAFE MULTI-TYPE)
+-----------------------------------
+
+ALLOWED:
+- Documents: pdf, docx, xlsx, pptx, txt, csv
+- Images: png, jpg, jpeg, gif
+- Archives: zip
+- Code: js, py, java, c, cpp
+
+BLOCKED:
+- exe, msi, bat, sh, apk, dll, sys
+
+-----------------------------------
+
+RULES:
+- Max file size: 25 MB
+- Max 5 files per room
+- Reject duplicates
+
+VALIDATION:
+- MIME type + extension must match
+
+-----------------------------------
+
+ZIP HANDLING:
+- If NOT encrypted:
+  - inspect contents
+  - remove unsafe files
+- If encrypted:
+  - allow
+  - mark as untrusted
+
+-----------------------------------
+
+FILE BEHAVIOR:
+- Rename using UUID internally
+- Store temp files in:
+  → /tmp/nopad/{roomId}/
+
+- Show original name in UI
+- Download only:
+  - Use Content-Disposition: attachment
+
+- Delete:
+  - instant for all users
+  - frees slot
+
+-----------------------------------
+5. TEXT LIMIT
+-----------------------------------
+
+- Max 20,000 words per room
+- If exceeded:
+  - block new input
+  - require deletion
+
+-----------------------------------
+6. REAL-TIME SYSTEM
+-----------------------------------
+
+- Use Socket.io
+
+Must sync:
+- file uploads
+- deletes
+- text blocks
+- commits
+
+Performance:
+- <1 second perceived update
+- no flicker
+- no UI lag
+
+-----------------------------------
+7. ABUSE PROTECTION
+-----------------------------------
+
+- 5 uploads/min per IP
+- 100 MB/hour per IP
+
+-----------------------------------
+8. DATABASE DESIGN (EPHEMERAL)
+-----------------------------------
+
+Use PostgreSQL or Redis
+
+Tables:
+
+Rooms:
+- id
+- created_at
+- expires_at
+
+Files:
+- id
+- room_id
+- stored_name
+- original_name
+- size
+- type
+
+Blocks:
+- id
+- room_id
+- content
+- owner_id
+- committed
+- updated_at
+
+IMPORTANT:
+- No data persists beyond 20 minutes
+- Cleanup must be guaranteed
+
+-----------------------------------
+9. BACKEND
+-----------------------------------
+
+- Node.js (Express or Fastify)
+- Socket.io
+- Streaming upload
+
+Use Redis for:
+- rate limiting
+- socket scaling
+
+-----------------------------------
+10. SECURITY (STRICT)
+-----------------------------------
+
+- validate all inputs
+- sanitize room names
+- MIME validation
+- prevent XSS (no innerHTML)
+- force download only
+- never execute files
+
+-----------------------------------
+11. PERFORMANCE (FIXED)
+-----------------------------------
+
+- No lag
+- No button glitch
+- Use:
+  - debouncing
+  - efficient state updates
+  - minimal re-renders
+
+-----------------------------------
+FINAL OBJECTIVE
+-----------------------------------
+
+Build "nopad" as:
+- DontPad simplicity
+- ChatGPT-style block UX
+- secure temporary file sharing
+
+Core principle:
+👉 EVERYTHING MUST SELF-DESTRUCT AFTER 20 MINUTES
+👉 ZERO PERMANENT STORAGE

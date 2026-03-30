@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: nopad - ephemeral collaboration API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: rooms
+    description: Room operations
+  - name: files
+    description: File operations
+  - name: blocks
+    description: Text block operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,298 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /rooms/{roomName}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get or create a room
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Invalid room name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /rooms/{roomName}/files:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List files in a room
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FileRecord"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /rooms/{roomName}/files/{fileId}:
+    get:
+      operationId: downloadFile
+      tags: [files]
+      summary: Download a file
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteFile
+      tags: [files]
+      summary: Delete a file
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /rooms/{roomName}/blocks:
+    get:
+      operationId: listBlocks
+      tags: [blocks]
+      summary: List text blocks in a room
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of blocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TextBlock"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: createBlock
+      tags: [blocks]
+      summary: Create a new text block
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBlockRequest"
+      responses:
+        "201":
+          description: Block created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextBlock"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /rooms/{roomName}/blocks/{blockId}:
+    put:
+      operationId: updateBlock
+      tags: [blocks]
+      summary: Update a text block
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: blockId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBlockRequest"
+      responses:
+        "200":
+          description: Block updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextBlock"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Block not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteBlock
+      tags: [blocks]
+      summary: Delete a text block
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: blockId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteBlockRequest"
+      responses:
+        "200":
+          description: Block deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Block not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /rooms/{roomName}/blocks/{blockId}/commit:
+    post:
+      operationId: commitBlock
+      tags: [blocks]
+      summary: Commit a text block (lock to owner)
+      parameters:
+        - name: roomName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: blockId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitBlockRequest"
+      responses:
+        "200":
+          description: Block committed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextBlock"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Block not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +330,131 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        fileCount:
+          type: integer
+        wordCount:
+          type: integer
+      required:
+        - id
+        - name
+        - createdAt
+        - expiresAt
+        - fileCount
+        - wordCount
+
+    FileRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        originalName:
+          type: string
+        storedName:
+          type: string
+        size:
+          type: integer
+        mimeType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - roomId
+        - originalName
+        - storedName
+        - size
+        - mimeType
+        - uploadedAt
+
+    TextBlock:
+      type: object
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        content:
+          type: string
+        ownerId:
+          type: string
+          nullable: true
+        committed:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - roomId
+        - content
+        - committed
+        - updatedAt
+        - createdAt
+
+    CreateBlockRequest:
+      type: object
+      properties:
+        ownerId:
+          type: string
+      required:
+        - ownerId
+
+    UpdateBlockRequest:
+      type: object
+      properties:
+        content:
+          type: string
+        ownerId:
+          type: string
+      required:
+        - content
+        - ownerId
+
+    DeleteBlockRequest:
+      type: object
+      properties:
+        ownerId:
+          type: string
+
+    CommitBlockRequest:
+      type: object
+      properties:
+        ownerId:
+          type: string
+      required:
+        - ownerId
