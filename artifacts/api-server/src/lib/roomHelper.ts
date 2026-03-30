@@ -48,7 +48,7 @@ export function getRoomDir(roomId: string): string {
   return path.join("/tmp", "nopad", roomId);
 }
 
-export async function getOrCreateRoom(name: string) {
+export async function getOrCreateRoom(name: string): Promise<{ room: typeof roomsTable.$inferSelect; isNew: boolean }> {
   const existing = await db
     .select()
     .from(roomsTable)
@@ -61,7 +61,7 @@ export async function getOrCreateRoom(name: string) {
     if (room.expiresAt < now) {
       await cleanupRoom(room.id);
     } else {
-      return room;
+      return { room, isNew: false };
     }
   }
 
@@ -79,7 +79,7 @@ export async function getOrCreateRoom(name: string) {
   const dir = getRoomDir(id);
   fs.mkdirSync(dir, { recursive: true });
 
-  return room;
+  return { room, isNew: true };
 }
 
 export async function cleanupRoom(roomId: string) {

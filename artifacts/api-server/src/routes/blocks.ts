@@ -55,7 +55,7 @@ router.post("/rooms/:roomName/blocks", async (req, res): Promise<void> => {
     return;
   }
 
-  const room = await getOrCreateRoom(rawName);
+  const { room } = await getOrCreateRoom(rawName);
   const now = new Date();
   if (room.expiresAt < now) {
     res.status(400).json({ error: "Room has expired" });

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, roomsTable, filesTable, blocksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 import { getOrCreateRoom, validateRoomName, countWords } from "../lib/roomHelper";
 
 const router: IRouter = Router();
@@ -12,7 +13,20 @@ router.get("/rooms/:roomName", async (req, res): Promise<void> => {
     return;
   }
 
-  const room = await getOrCreateRoom(rawName);
+  const { room, isNew } = await getOrCreateRoom(rawName);
+
+  if (isNew) {
+    const now = new Date();
+    await db.insert(blocksTable).values({
+      id: uuidv4(),
+      roomId: room.id,
+      content: "",
+      ownerId: null,
+      committed: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
 
   const files = await db.select().from(filesTable).where(eq(filesTable.roomId, room.id));
   const blocks = await db.select().from(blocksTable).where(eq(blocksTable.roomId, room.id));

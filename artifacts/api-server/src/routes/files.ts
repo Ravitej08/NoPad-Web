@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
         cb(new Error("Invalid room name"), "");
         return;
       }
-      const room = await getOrCreateRoom(rawName);
+      const { room } = await getOrCreateRoom(rawName);
       const dir = getRoomDir(room.id);
       fs.mkdirSync(dir, { recursive: true });
       (req as any).room = room;
