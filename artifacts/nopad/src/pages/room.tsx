@@ -24,6 +24,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
@@ -95,6 +96,37 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
   return <span className="font-mono text-sm tabular-nums">{timeLeft}</span>;
 }
 
+function InfoModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="relative bg-background border rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
+          <h2 className="text-sm font-bold tracking-widest uppercase text-muted-foreground">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none w-7 h-7 flex items-center justify-center rounded-md hover:bg-muted"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-5 text-sm leading-relaxed space-y-2">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Room() {
   const params = useParams();
   const roomName = params.roomName as string;
@@ -102,6 +134,8 @@ export function Room() {
   const ownerId = useOwnerId();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const [showManual, setShowManual] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   
   // Real-time setup
   useSocket(roomName);
@@ -201,6 +235,13 @@ export function Room() {
               <DropdownMenuItem onClick={() => setTheme("hacker")}>
                 Hacker Theme
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowManual(true)}>
+                User Manual
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowAbout(true)}>
+                About Us
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -274,6 +315,47 @@ export function Room() {
 
       {/* Upload Area (Fixed Bottom) */}
       <UploadArea roomName={roomName} maxFilesReached={files.length >= 5} />
+
+      {/* User Manual Modal */}
+      {showManual && (
+        <InfoModal title="User Manual" onClose={() => setShowManual(false)}>
+          <ul className="space-y-3 text-foreground/80">
+            <li>• No login required. Enter a room name to start.</li>
+            <li>• Rooms are temporary and auto-delete after <strong className="text-foreground">20 minutes</strong>.</li>
+            <li>• You can upload files (max <strong className="text-foreground">5 files</strong>, up to <strong className="text-foreground">25MB</strong> each).</li>
+            <li>• Supported files: documents, images, code, and zip.</li>
+            <li>• All files are download-only (no preview).</li>
+            <li className="pt-1 font-medium text-foreground">Text blocks:</li>
+            <li className="pl-4">– Click <strong className="text-foreground">"New Block"</strong> to create one.</li>
+            <li className="pl-4">– Typing auto-saves.</li>
+            <li className="pl-4">– Use 📋 to copy.</li>
+            <li className="pl-4">– Use 🧷 to lock (only you can edit after).</li>
+            <li className="pt-1">• Anyone with the link can access the room.</li>
+            <li>• Data is not stored permanently.</li>
+          </ul>
+        </InfoModal>
+      )}
+
+      {/* About Us Modal */}
+      {showAbout && (
+        <InfoModal title="About Us" onClose={() => setShowAbout(false)}>
+          <ul className="space-y-3 text-foreground/80">
+            <li>• <strong className="text-foreground">nopad</strong> is a simple, fast, and secure temporary sharing platform.</li>
+            <li>• Built for educational and collaborative use.</li>
+            <li>• No login. No storage. No complexity.</li>
+            <li>• Created by <strong className="text-foreground">Tej</strong>.</li>
+            <li className="pt-2">
+              <span className="text-muted-foreground text-xs">Contact: </span>
+              <a
+                href="mailto:ptej24532@gmail.com"
+                className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+              >
+                ptej24532@gmail.com
+              </a>
+            </li>
+          </ul>
+        </InfoModal>
+      )}
     </div>
   );
 }
